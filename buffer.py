@@ -87,12 +87,9 @@ class Buffer:
 
     def write_byte(self, byte: int):
         self.buf += struct.pack("!B", byte)
-        self.offset += 1
 
     def write(self, fmt: str, *vals):
-        size = struct.calcsize(fmt)
         self.buf += struct.pack(fmt, *vals)
-        self.offset += size
 
     def write_qname(self, qname: str):
         for label in qname.split("."):
@@ -102,6 +99,5 @@ class Buffer:
             self.write("!B", length)
             raw_bytes = label.encode("utf-8")
             self.buf += raw_bytes
-            self.offset += len(raw_bytes)
 
         self.write("!B", 0)

@@ -164,9 +164,41 @@ class DnsRecordA:
 
 DnsRecord = Union[DnsRecordUnknown, DnsRecordA]
 
+@dataclass
+class DnsRecordTest:
+    domain_name: str
+    record_type: int
+    record_class: int
+    ttl: int
+    rdlength: int
+    rdata: bytes
+
+    @classmethod
+    def parse(cls, buf: Buffer):
+        domain_name = buf.read_qname()
+
+        # Unpack the remaining fields (Type, Class, TTL, RDLENGTH)
+        (record_type, record_class, ttl, rdlength) = buf.unpack("!HHIH")
+
+        # Read the RDATA based on the RDLENGTH
+        rdata = buf.get_range(buf.pos(), rdlength)
+
+        # Update the buffer offset to point to the next record (if any)
+        buf.seek(buf.pos() + rdlength)
+
+        return cls(
+            domain_name=domain_name,
+            record_type=record_type,
+            record_class=record_class,
+            ttl=ttl,
+            rdlength=rdlength,
+            rdata=rdata,
+        )
 
 def parse_dns_record(buf: Buffer) -> DnsRecord:
+    print("offset before parsing dns record = ", buf.offset)
     domain = buf.read_qname()
+    print("offset after parsing domain = ", buf.offset)
     (qtype,) = buf.unpack("!H")
     try:
         qtype = QueryType(qtype)
@@ -203,17 +235,26 @@ class DnsPacket:
         resource_entries = []
 
         header = DnsHeader.parse(buf)
+        print(f"offset after parsing header = {buf.offset}")
         for _ in range(header.questions):
             questions.append(DnsQuestion.parse(buf))
+        
+        print(f"offset after parsing questions = {buf.offset}")
 
         for _ in range(header.answers):
             answers.append(parse_dns_record(buf))
+        
+        print(f"offset after parsing answers = {buf.offset}")
 
         for _ in range(header.authoritative_entries):
             authoritative_entries.append(parse_dns_record(buf))
+        
+        print(f"offset after parsing authoritative = {buf.offset}")
 
         for _ in range(header.resource_entries):
             resource_entries.append(parse_dns_record(buf))
+        
+        print(f"offset after parsing resource = {buf.offset}")
 
         return cls(
             header=header,
@@ -236,3 +277,29 @@ class DnsPacket:
 
         for resource in self.resource_entries:
             resource.write(buf)
+
+def ipos(array, *index):
+    """ Visually indicate where the index is in an array """
+    def bfmt(x):
+        return repr(chr(x))[1:-1]
+    
+    return "".join(
+        [
+            bfmt(array[i])
+            if i not in index
+            #else f"\033[1;31;40m{str(i)}\033[0;37;40m"
+            else f"\033[31;1;4m{bfmt(array[i])}\033[0m"
+            for i in range(len(array))
+        ]
+    )
+
+with open("response2.pkt", "rb") as f:
+    buf = Buffer(f.read())
+
+packet = DnsPacket.parse(buf)
+pprint.pprint(packet)
+print(f"Buffer total length = {len(buf)}")
+print(f"Buffer offset after parsing = {buf.offset}")
+
+print(ipos(buf.buf, 37, 12))
+
