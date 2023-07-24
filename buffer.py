@@ -6,6 +6,7 @@ DNS_POINTER_MASK = 0xC0
 DNS_POINTER_OFFSET_MASK = 0x3FFF
 DNS_MAX_NAME_LENGTH = 255
 
+
 @dataclass
 class Buffer:
     buf: bytes = b""
@@ -52,7 +53,6 @@ class Buffer:
             length = self.get(pos)
 
             if length & DNS_POINTER_MASK == DNS_POINTER_MASK:
-
                 if not jumped:
                     self.seek(pos + 2)
 
@@ -72,13 +72,12 @@ class Buffer:
                 qname += self.get_range(pos, length).decode("utf-8")
                 delim = "."
                 pos += length
-        
+
         if not jumped:
             # try off by one also
             self.seek(pos)
-        
-        return qname
 
+        return qname
 
     def write_byte(self, byte: int):
         self.buf += struct.pack("!B", byte)

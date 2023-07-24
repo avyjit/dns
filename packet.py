@@ -164,6 +164,7 @@ class DnsRecordA:
 
 DnsRecord = Union[DnsRecordUnknown, DnsRecordA]
 
+
 @dataclass
 class DnsRecord:
     record: Union[DnsRecordUnknown, DnsRecordA]
@@ -189,13 +190,11 @@ class DnsRecord:
 
         else:
             data = DnsRecordUnknown(domain=domain, qtype=qtype, length=length, ttl=ttl)
-        
+
         return cls(record=data)
-    
+
     def write(self, buf: Buffer):
         self.record.write(buf)
-
-
 
 
 @dataclass
@@ -218,15 +217,15 @@ class DnsPacket:
             questions.append(DnsQuestion.parse(buf))
 
         for _ in range(header.answers):
-            #answers.append(parse_dns_record(buf))
+            # answers.append(parse_dns_record(buf))
             answers.append(DnsRecord.parse(buf))
 
         for _ in range(header.authoritative_entries):
-            #authoritative_entries.append(parse_dns_record(buf))
+            # authoritative_entries.append(parse_dns_record(buf))
             authoritative_entries.append(DnsRecord.parse(buf))
 
         for _ in range(header.resource_entries):
-            #resource_entries.append(parse_dns_record(buf))
+            # resource_entries.append(parse_dns_record(buf))
             resource_entries.append(DnsRecord.parse(buf))
 
         return cls(
