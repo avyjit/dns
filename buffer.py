@@ -76,7 +76,8 @@ class Buffer:
         if not jumped:
             # try off by one also
             self.seek(pos)
-
+        
+        return qname
 
 
     def write_byte(self, byte: int):
@@ -86,6 +87,9 @@ class Buffer:
         self.buf += struct.pack(fmt, *vals)
 
     def write_qname(self, qname: str):
+        if qname is None:
+            qname = ""
+
         for label in qname.split("."):
             length = len(label)
             assert length <= 63, "Label exceeds 63 characters"

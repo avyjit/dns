@@ -237,7 +237,16 @@ class DnsPacket:
         for resource in self.resource_entries:
             resource.write(buf)
 
-with open("response2.pkt", "rb") as f:
+with open("response.pkt", "rb") as f:
     buf = Buffer(f.read())
     packet = DnsPacket.parse(buf)
     pprint.pprint(packet)
+
+    nbuf = Buffer()
+    packet.write(nbuf)
+
+    new_packet = DnsPacket.parse(nbuf)
+    pprint.pprint(new_packet)
+
+    print(f"{len(buf) = } {len(nbuf) = } {buf.offset = } {nbuf.offset = }")
+    assert new_packet == packet
