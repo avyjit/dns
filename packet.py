@@ -164,27 +164,38 @@ class DnsRecordA:
 
 DnsRecord = Union[DnsRecordUnknown, DnsRecordA]
 
+@dataclass
+class DnsRecord:
+    record: Union[DnsRecordUnknown, DnsRecordA]
 
-def parse_dns_record(buf: Buffer) -> DnsRecord:
-    domain = buf.read_qname()
-    (qtype,) = buf.unpack("!H")
-    try:
-        qtype = QueryType(qtype)
-    except ValueError:
-        print("Unknown query type: ", qtype)
-        qtype = QueryType.UNKNOWN
+    @classmethod
+    def parse(cls, buf: Buffer):
+        data = None
+        domain = buf.read_qname()
+        (qtype,) = buf.unpack("!H")
+        try:
+            qtype = QueryType(qtype)
+        except ValueError:
+            pass
 
-    _ = buf.unpack("!H")  # class
-    (ttl,) = buf.unpack("!I")
-    (length,) = buf.unpack("!H")
+        _ = buf.unpack("!H")  # class
+        (ttl,) = buf.unpack("!I")
+        (length,) = buf.unpack("!H")
 
-    if qtype == QueryType.A:
-        (addr,) = buf.unpack("!I")
-        addr = ipaddress.ip_address(addr)
-        return DnsRecordA(domain=domain, addr=addr, ttl=ttl)
+        if qtype == QueryType.A:
+            (addr,) = buf.unpack("!I")
+            addr = ipaddress.ip_address(addr)
+            data = DnsRecordA(domain=domain, addr=addr, ttl=ttl)
 
-    else:
-        return DnsRecordUnknown(domain=domain, qtype=qtype, length=length, ttl=ttl)
+        else:
+            data = DnsRecordUnknown(domain=domain, qtype=qtype, length=length, ttl=ttl)
+        
+        return cls(record=data)
+    
+    def write(self, buf: Buffer):
+        self.record.write(buf)
+
+
 
 
 @dataclass
@@ -207,13 +218,16 @@ class DnsPacket:
             questions.append(DnsQuestion.parse(buf))
 
         for _ in range(header.answers):
-            answers.append(parse_dns_record(buf))
+            #answers.append(parse_dns_record(buf))
+            answers.append(DnsRecord.parse(buf))
 
         for _ in range(header.authoritative_entries):
-            authoritative_entries.append(parse_dns_record(buf))
+            #authoritative_entries.append(parse_dns_record(buf))
+            authoritative_entries.append(DnsRecord.parse(buf))
 
         for _ in range(header.resource_entries):
-            resource_entries.append(parse_dns_record(buf))
+            #resource_entries.append(parse_dns_record(buf))
+            resource_entries.append(DnsRecord.parse(buf))
 
         return cls(
             header=header,
@@ -236,17 +250,3 @@ class DnsPacket:
 
         for resource in self.resource_entries:
             resource.write(buf)
-
-with open("response.pkt", "rb") as f:
-    buf = Buffer(f.read())
-    packet = DnsPacket.parse(buf)
-    pprint.pprint(packet)
-
-    nbuf = Buffer()
-    packet.write(nbuf)
-
-    new_packet = DnsPacket.parse(nbuf)
-    pprint.pprint(new_packet)
-
-    print(f"{len(buf) = } {len(nbuf) = } {buf.offset = } {nbuf.offset = }")
-    assert new_packet == packet
