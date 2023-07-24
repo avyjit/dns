@@ -281,7 +281,7 @@ class DnsPacket:
 def ipos(array, *index):
     """ Visually indicate where the index is in an array """
     def bfmt(x):
-        return repr(chr(x))[1:-1]
+        return repr(chr(x))[1:-1] if x >= 32 and x <= 126 else f"\\x{x:02x}"
     
     return "".join(
         [
@@ -293,7 +293,7 @@ def ipos(array, *index):
         ]
     )
 
-with open("response2.pkt", "rb") as f:
+with open("r1.pkt", "rb") as f:
     buf = Buffer(f.read())
 
 packet = DnsPacket.parse(buf)
@@ -301,5 +301,7 @@ pprint.pprint(packet)
 print(f"Buffer total length = {len(buf)}")
 print(f"Buffer offset after parsing = {buf.offset}")
 
-print(ipos(buf.buf, 37, 12))
+print(ipos(buf.buf, 28, 12))
+
+print(buf.buf)
 

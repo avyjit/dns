@@ -2,7 +2,9 @@ import struct
 from dataclasses import dataclass
 
 DNS_QNAME_MAX_JUMPS = 5
-
+DNS_POINTER_MASK = 0xC0
+DNS_POINTER_OFFSET_MASK = 0x3FFF
+DNS_MAX_NAME_LENGTH = 255
 
 @dataclass
 class Buffer:
@@ -41,49 +43,41 @@ class Buffer:
 
         pos = self.pos()
         jumped = False
-        num_jumps = 0
+        max_jumps = 5
+        jumps_performed = 0
 
         delim = ""
-
         while True:
-            assert (
-                num_jumps < DNS_QNAME_MAX_JUMPS
-            ), "Too many jumps in DNS qname parsing"
+            assert jumps_performed < max_jumps, "Too many jumps in DNS name"
+            length = self.get(pos)
 
-            # Read a single byte indicating length of next segment
-            (length,) = self.peek("!B")
+            if length & DNS_POINTER_MASK == DNS_POINTER_MASK:
 
-            if length & 0xC0 == 0xC0:
                 if not jumped:
-                    self.seek(self.pos() + 2)
+                    self.seek(pos + 2)
 
                 b2 = self.get(pos + 1)
-                pos = ((length ^ 0xC0) << 8) + b2
-
+                offset = ((length ^ DNS_POINTER_MASK) << 8) | b2
+                pos = offset
                 jumped = True
-                num_jumps += 1
+                jumps_performed += 1
 
                 continue
-
             else:
                 pos += 1
-
-                # The qname is terminated by a zero-length segment
                 if length == 0:
-                    self.seek(pos)
                     break
 
                 qname += delim
-                qname += self.get_range(pos, length).decode("utf-8").lower()
-
+                qname += self.get_range(pos, length).decode("utf-8")
                 delim = "."
                 pos += length
-                self.seek(pos)
+        
+        if not jumped:
+            # try off by one also
+            self.seek(pos)
 
-            # if not jumped:
-            #     self.seek(pos)
 
-        return qname
 
     def write_byte(self, byte: int):
         self.buf += struct.pack("!B", byte)
