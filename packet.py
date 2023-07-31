@@ -19,6 +19,12 @@ class ResultCode(IntEnum):
 class QueryType(IntEnum):
     UNKNOWN = 0
     A = 1
+    NS = 2
+    CNAME = 5
+    SOA = 6
+    PTR = 12
+    MX = 15
+    AAAA = 28
 
 
 @dataclass
@@ -41,6 +47,26 @@ class DnsHeader:
     answers: int  # 16 bits
     authoritative_entries: int  # 16 bits
     resource_entries: int  # 16 bits
+
+    @classmethod
+    def default(cls):
+        return cls(
+            id=0,
+            recursion_desired=False,
+            truncated_message=False,
+            authoritative_answer=False,
+            opcode=0,
+            response=False,
+            rescode=ResultCode.NOERROR,
+            checking_disabled=False,
+            authed_data=False,
+            z=False,
+            recursion_available=False,
+            questions=0,
+            answers=0,
+            authoritative_entries=0,
+            resource_entries=0,
+        )
 
     @classmethod
     def parse(cls, buf: Buffer):
@@ -206,6 +232,16 @@ class DnsPacket:
     resource_entries: List[DnsRecord]
 
     @classmethod
+    def default(cls):
+        return cls(
+            header=DnsHeader.default(),
+            questions=[],
+            answers=[],
+            authoritative_entries=[],
+            resource_entries=[],
+        )
+
+    @classmethod
     def parse(cls, buf: Buffer):
         questions = []
         answers = []
@@ -249,3 +285,16 @@ class DnsPacket:
 
         for resource in self.resource_entries:
             resource.write(buf)
+
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) == 1:
+        print("Usage: python3 packet.py <filename>")
+        sys.exit(1)
+    else:
+        filename = sys.argv[1]
+        with open(filename, "rb") as f:
+            buf = Buffer(f.read())
+        packet = DnsPacket.parse(buf)
+        pprint.pprint(packet)
