@@ -201,28 +201,32 @@ class DnsRecordSOA:
     ttl: int
 
     def write(self, buf: Buffer):
-        # debug
-        print("Writing SOA record")
-        print(f"before: {buf.buf}")
-        buf.write_qname(self.domain)
-        buf.write("!H", QueryType.SOA.value)
-        buf.write("!H", 1)  # class (IN)
-        buf.write("!I", self.ttl)
-        pos_length = len(buf)
-        buf.write("!H", 0)  # Placeholder for length
+        assert False, "Unimplemented SOA write"
+        # # debug
+        # #print("Writing SOA record")
+        # #print(f"before: {buf.buf}")
+        # buf.write_qname(self.domain)
+        # buf.write("!H", QueryType.SOA.value)
+        # buf.write("!H", 1)  # class (IN)
+        # buf.write("!I", self.ttl)
+        # pos_length = len(buf)
+        # print(f"POS_LENGTH {pos_length}")
 
-        buf.write_qname(self.mname)
-        buf.write_qname(self.rname)
-        buf.write("!I", self.serial)
-        buf.write("!I", self.refresh)
-        buf.write("!I", self.retry)
-        buf.write("!I", self.expire)
-        buf.write("!I", self.minimum)
+        # # DEBUG COMMENT
+        # buf.write("!H", 0)  # Placeholder for length
 
-        # Calculate and write the actual length
-        length = len(buf) - pos_length - struct.calcsize("!H")
-        buf.write_at(pos_length, "!H", length)
-        print(f"after: {buf.buf}")
+        # buf.write_qname(self.mname)
+        # buf.write_qname(self.rname)
+        # buf.write("!I", self.serial)
+        # buf.write("!I", self.refresh)
+        # buf.write("!I", self.retry)
+        # buf.write("!I", self.expire)
+        # buf.write("!I", self.minimum)
+
+        # # Calculate and write the actual length
+        # length = len(buf) - pos_length - struct.calcsize("!H")
+        # buf.write_at(pos_length, "!H", length)
+        # #print(f"after: {buf.buf}")
 
 
 DnsRecord = Union[DnsRecordUnknown, DnsRecordA, DnsRecordSOA]
