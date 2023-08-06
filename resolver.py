@@ -47,4 +47,11 @@ sock.send(buf.buf)
 response = sock.recv(512)
 packet = DnsPacket.parse(Buffer(response))
 
-pp(packet)
+newbuf = Buffer()
+packet.write(newbuf)
+newbuf.seek(0)
+pp(newbuf)
+newpacket = DnsPacket.parse(newbuf)
+#pp(newpacket)
+#pp(packet)
+assert newpacket == packet

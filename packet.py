@@ -1,6 +1,7 @@
 import ipaddress
 import pprint
 from dataclasses import asdict, dataclass
+import struct
 from enum import IntEnum
 from typing import List, Union
 
@@ -187,8 +188,44 @@ class DnsRecordA:
         buf.write("!HHIH", QueryType.A, 1, self.ttl, 4)
         buf.write("!I", int(self.addr))
 
+@dataclass
+class DnsRecordSOA:
+    domain: str
+    mname: str
+    rname: str
+    serial: int
+    refresh: int
+    retry: int
+    expire: int
+    minimum: int
+    ttl: int
 
-DnsRecord = Union[DnsRecordUnknown, DnsRecordA]
+    def write(self, buf: Buffer):
+        # debug
+        print("Writing SOA record")
+        print(f"before: {buf.buf}")
+        buf.write_qname(self.domain)
+        buf.write("!H", QueryType.SOA.value)
+        buf.write("!H", 1)  # class (IN)
+        buf.write("!I", self.ttl)
+        pos_length = len(buf)
+        buf.write("!H", 0)  # Placeholder for length
+
+        buf.write_qname(self.mname)
+        buf.write_qname(self.rname)
+        buf.write("!I", self.serial)
+        buf.write("!I", self.refresh)
+        buf.write("!I", self.retry)
+        buf.write("!I", self.expire)
+        buf.write("!I", self.minimum)
+
+        # Calculate and write the actual length
+        length = len(buf) - pos_length - struct.calcsize("!H")
+        buf.write_at(pos_length, "!H", length)
+        print(f"after: {buf.buf}")
+
+
+DnsRecord = Union[DnsRecordUnknown, DnsRecordA, DnsRecordSOA]
 
 
 @dataclass
@@ -213,6 +250,26 @@ class DnsRecord:
             (addr,) = buf.unpack("!I")
             addr = ipaddress.ip_address(addr)
             data = DnsRecordA(domain=domain, addr=addr, ttl=ttl)
+
+        if qtype == QueryType.SOA:
+            mname = buf.read_qname()
+            rname = buf.read_qname()
+            (serial,) = buf.unpack("!I")
+            (refresh,) = buf.unpack("!I")
+            (retry,) = buf.unpack("!I")
+            (expire,) = buf.unpack("!I")
+            (minimum,) = buf.unpack("!I")
+            data = DnsRecordSOA(
+                domain=domain,
+                mname=mname,
+                rname=rname,
+                serial=serial,
+                refresh=refresh,
+                retry=retry,
+                expire=expire,
+                minimum=minimum,
+                ttl=ttl,
+            )
 
         else:
             data = DnsRecordUnknown(domain=domain, qtype=qtype, length=length, ttl=ttl)
