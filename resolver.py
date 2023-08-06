@@ -48,8 +48,4 @@ response = sock.recv(512)
 buffer = Buffer(response)
 packet = DnsPacket.parse(buffer)
 
-sock.send(buf.buf)
-nbuf = Buffer(sock.recv(512))
-npacket = DnsPacket.parse(nbuf)
-pp(npacket)
 pp(packet)

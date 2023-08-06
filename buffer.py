@@ -9,14 +9,8 @@ DNS_MAX_NAME_LENGTH = 255
 
 @dataclass
 class Buffer:
-    buf: bytearray = None
+    buf: bytes = b""
     offset: int = 0
-
-    def __post_init__(self):
-        # Create a new bytearray
-        # mutable variables as default won't work here
-        if self.buf is None:
-            self.buf = bytearray()
 
     def unpack(self, fmt):
         values = struct.unpack_from(fmt, self.buf, self.offset)
@@ -104,8 +98,3 @@ class Buffer:
             self.buf += raw_bytes
 
         self.write("!B", 0)
-    
-    def write_at(self, pos: int, fmt: str, *vals):
-        print(self.buf)
-        print(pos, fmt, vals)
-        self.buf[pos:pos + struct.calcsize(fmt)] = struct.pack(fmt, *vals)
