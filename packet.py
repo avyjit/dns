@@ -211,6 +211,12 @@ class DnsRecordAAAA:
     ipv6_addr: str
     ttl: int
 
+@dataclass
+class DnsRecordCNAME:
+    domain: str
+    cname: str
+    ttl: int
+
 DnsRecord = Union[DnsRecordUnknown, DnsRecordA]
 
 
@@ -262,6 +268,9 @@ class DnsRecord:
             (ipv6_bytes,) = buf.unpack("!16s")
             ipv6_addr = ipaddress.IPv6Address(ipv6_bytes).compressed
             data = DnsRecordAAAA(domain=domain, ipv6_addr=ipv6_addr, ttl=ttl)
+        elif qtype == QueryType.CNAME:
+            cname = buf.read_qname()
+            data = DnsRecordCNAME(domain=domain, cname=cname, ttl=ttl)
         else:
             data = DnsRecordUnknown(domain=domain, qtype=qtype, length=length, ttl=ttl)
 
