@@ -187,6 +187,29 @@ class DnsRecordA:
         buf.write("!HHIH", QueryType.A, 1, self.ttl, 4)
         buf.write("!I", int(self.addr))
 
+@dataclass
+class DnsRecordSOA:
+    domain: str
+    mname: str
+    rname: str
+    serial: int
+    refresh: int
+    retry: int
+    expire: int
+    minimum: int
+    ttl: int
+
+@dataclass
+class DnsRecordNS:
+    domain: str
+    ns_name: str
+    ttl: int
+
+@dataclass
+class DnsRecordAAAA:
+    domain: str
+    ipv6_addr: str
+    ttl: int
 
 DnsRecord = Union[DnsRecordUnknown, DnsRecordA]
 
@@ -213,7 +236,32 @@ class DnsRecord:
             (addr,) = buf.unpack("!I")
             addr = ipaddress.ip_address(addr)
             data = DnsRecordA(domain=domain, addr=addr, ttl=ttl)
-
+        elif qtype == QueryType.SOA:
+            mname = buf.read_qname()
+            rname = buf.read_qname()
+            (serial,) = buf.unpack("!I")
+            (refresh,) = buf.unpack("!I")
+            (retry,) = buf.unpack("!I")
+            (expire,) = buf.unpack("!I")
+            (minimum,) = buf.unpack("!I")
+            data = DnsRecordSOA(
+                domain=domain,
+                mname=mname,
+                rname=rname,
+                serial=serial,
+                refresh=refresh,
+                retry=retry,
+                expire=expire,
+                minimum=minimum,
+                ttl=ttl,
+            )
+        elif qtype == QueryType.NS:
+            ns_name = buf.read_qname()
+            data = DnsRecordNS(domain=domain, ns_name=ns_name, ttl=ttl)
+        elif qtype == QueryType.AAAA:
+            (ipv6_bytes,) = buf.unpack("!16s")
+            ipv6_addr = ipaddress.IPv6Address(ipv6_bytes).compressed
+            data = DnsRecordAAAA(domain=domain, ipv6_addr=ipv6_addr, ttl=ttl)
         else:
             data = DnsRecordUnknown(domain=domain, qtype=qtype, length=length, ttl=ttl)
 
